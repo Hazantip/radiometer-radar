@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+	<style>
+		html, body {
+			padding: 0;
+			margin: 0;
+			width: 100%;
+			height: 100%;
+		}
+
+		.c-wrap {
+			position: fixed;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			right: 0;
+			width: 100%;
+			height: 100%;
+			background-color: #333;
+			/*perspective: 1600px;*/
+
+		}
+
+		canvas {
+			position: relative;
+			width: 100%;
+			height: 200%;
+			min-height: 1600px;
+			/*transform: rotateX(55deg);*/
+			transform-origin: top center;
+			border-bottom: 1px dashed #444;
+		}
+	</style>
+	<script src="paper-full.min.js"></script>
+</head>
+<body>
+<div class="c-wrap">
+	<canvas></canvas>
+</div>
+<script>
+	class Circle {
+
+		constructor(paper, params) {
+			this.paper = paper;
+			this.params = params;
+
+			this.rotationSpeed;
+
+			this.path = new paper.Path();
+//			this.path.strokeColor = '#777';
+			this.path.strokeColor = '#ffffff';
+
+			var i;
+			var rad = Math.PI / 180;
+			var point, pointsAmount;
+			var step, radius, originalRadius;
+			var offset;
+
+			pointsAmount = 7;
+			step = Math.PI * 2 / pointsAmount;
+			radius = originalRadius = 6;
+			offset = 145; // 90
+
+//			 place circle points
+			for (i = 0; i < pointsAmount; i++) {
+				point = new paper.Point(
+						Math.cos(i * step + offset * rad) * radius,
+						Math.sin(i * step + offset * rad) * radius
+				);
+				this.path.add(point);
+				radius += originalRadius * .4;
+			}
+
+			this.path.closed = true;
+			this.path.fullySelected = false;
+			this.path.smooth({type: 'continuous'});
+
+
+//			control curvature
+			this.path.pivot = new paper.Point(
+					this.path.bounds.width * 0.25, // 0.25˜ 0.15˜ | o - 0.05
+					this.path.bounds.height * .25 // 0.1˜ 0.15˜ | o - 0.1
+			);
+
+			this.path.scaling.x = this.path.scaling.y = this.params.scale;
+
+			this.rotationSpeed = 5 * rad;
+		}
+	}
+
+	var i;
+	var canvas = document.querySelector('canvas');
+	var containerW = canvas.offsetWidth;
+	var containerH = canvas.offsetHeight;
+	var p = new paper.PaperScope();
+	var circles = [];
+	var framesCounter = 0;
+	var rad = Math.PI / 180;
+
+	p.setup(canvas);
+
+//	 generate circles
+	for (i = 0; i < 35; i++) {
+		circles[i] = new Circle(p, {
+			scale: 1 + i * .75
+		});
+		circles[i].path.position.x = containerW / 2;
+		circles[i].path.position.y = containerH / 5; // 4
+	}
+
+//	console.log(circles);
+
+	loopRender();
+
+	function loopRender() {
+		requestAnimationFrame(loopRender);
+		framesCounter++;
+		if (framesCounter % 2) {
+			return;
+		}
+
+		var i;
+		var absSin = Math.sin(framesCounter * rad); // -1 to 1
+		var targetRotationSpeed = ( 50 + absSin * 50 ) * rad; // 0 to ~1.7
+//		var targetRotationSpeed = ( 25 + absSin * 50 ) * rad;
+		targetRotationSpeed = targetRotationSpeed * 1.1;
+
+		console.log('speed: ', targetRotationSpeed.toFixed(6), ' absSin: ', absSin.toFixed(6));
+
+		for (i = 0; i < circles.length; i++) {
+//			 wave rotation test
+//			circles[i].rotationSpeed += ( targetRotationSpeed - circles[i].rotationSpeed ) / ( i + 2 );
+//			circles[i].path.rotation += circles[i].rotationSpeed;
+
+			// i + 100 - pause no |<->| i + 10 - pause yes
+			circles[i].rotationSpeed += ( targetRotationSpeed - circles[i].rotationSpeed ) / ( i + 100);
+			circles[i].path.rotation += circles[i].rotationSpeed;
+
+//			circles[i].path.matrix.b = absSin / 5000; // move L - R
+//			circles[i].path.matrix.d += (absSin / 100);
+//			circles[i].path.scaling.y = 1 - i / 1000;
+//			console.log(circles[i].path.matrix);
+//			console.log(circles[i].path.scaling.x);
+
+//			circles[i].rotationSpeed = absSin * (i * 50);
+//			circles[i].path.rotation += 1 + targetRotationSpeed;
+		}
+
+		if (framesCounter == 2) {
+			console.log(circles);
+		}
+
+		render();
+	}
+
+	function render() {
+		p.view.draw();
+	}
+
+</script>
+</body>
+</html>
